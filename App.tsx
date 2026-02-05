@@ -11,6 +11,7 @@ import { Students } from './pages/Students';
 import { Teachers } from './pages/Teachers';
 import { Classes } from './pages/Classes';
 import { Subjects } from './pages/Subjects';
+import { ImageEditor } from './pages/ImageEditor';
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -42,6 +43,8 @@ const AppContent: React.FC = () => {
         return <Classes />;
       case 'subjects':
         return <Subjects />;
+      case 'ai-studio':
+        return <ImageEditor />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">

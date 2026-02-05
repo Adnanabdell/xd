@@ -18,6 +18,7 @@ const translations: Record<Language, Record<string, string>> = {
     adminAudit: 'Audit Logs',
     systemConfig: 'System Config',
     myStudents: 'My Students',
+    aiStudio: 'AI Studio',
     signOut: 'Sign Out',
     welcomeBack: 'Welcome back',
     todaysAttendance: "Today's Attendance",
@@ -72,7 +73,18 @@ const translations: Record<Language, Record<string, string>> = {
     errorDeleteLinked: 'Cannot delete: Item is linked to other records.',
     successSaved: 'Saved successfully.',
     successDeleted: 'Deleted successfully.',
-    adminManagement: 'Administration'
+    adminManagement: 'Administration',
+    // AI Editor
+    aiEditorTitle: 'Nano Banana Editor',
+    aiEditorSubtitle: 'Transform images using generative AI prompts.',
+    uploadImage: 'Upload Image',
+    dragDrop: 'Drag & drop or click to upload',
+    promptLabel: 'Magic Prompt',
+    promptPlaceholder: 'E.g., "Add a retro filter" or "Turn the background into a forest"',
+    generate: 'Generate Magic',
+    original: 'Original',
+    result: 'AI Result',
+    processing: 'Processing...'
   },
   ar: {
     dashboard: 'لوحة التحكم',
@@ -81,6 +93,7 @@ const translations: Record<Language, Record<string, string>> = {
     adminAudit: 'سجلات النظام',
     systemConfig: 'إعدادات النظام',
     myStudents: 'طلابي',
+    aiStudio: 'ستوديو الذكاء الاصطناعي',
     signOut: 'تسجيل الخروج',
     welcomeBack: 'مرحباً بعودتك',
     todaysAttendance: 'حضور اليوم',
@@ -135,7 +148,18 @@ const translations: Record<Language, Record<string, string>> = {
     errorDeleteLinked: 'لا يمكن الحذف: العنصر مرتبط بسجلات أخرى.',
     successSaved: 'تم الحفظ بنجاح.',
     successDeleted: 'تم الحذف بنجاح.',
-    adminManagement: 'الإدارة'
+    adminManagement: 'الإدارة',
+    // AI Editor
+    aiEditorTitle: 'محرر نانو بنانا',
+    aiEditorSubtitle: 'حول الصور باستخدام أوامر الذكاء الاصطناعي.',
+    uploadImage: 'رفع صورة',
+    dragDrop: 'اسحب وأفلت أو انقر للرفع',
+    promptLabel: 'الأمر السحري',
+    promptPlaceholder: 'مثال: "أضف طابع قديم" أو "اجعل الخلفية غابة"',
+    generate: 'توليد السحر',
+    original: 'الأصلية',
+    result: 'النتيجة',
+    processing: 'جاري المعالجة...'
   },
   fr: {
     dashboard: 'Tableau de bord',
@@ -144,6 +168,7 @@ const translations: Record<Language, Record<string, string>> = {
     adminAudit: 'Journaux d\'audit',
     systemConfig: 'Config système',
     myStudents: 'Mes étudiants',
+    aiStudio: 'Studio IA',
     signOut: 'Déconnexion',
     welcomeBack: 'Bon retour',
     todaysAttendance: 'Présence d\'aujourd\'hui',
@@ -198,7 +223,18 @@ const translations: Record<Language, Record<string, string>> = {
     errorDeleteLinked: 'Suppression impossible : Élément lié à d\'autres enregistrements.',
     successSaved: 'Enregistré avec succès.',
     successDeleted: 'Supprimé avec succès.',
-    adminManagement: 'Administration'
+    adminManagement: 'Administration',
+    // AI Editor
+    aiEditorTitle: 'Éditeur Nano Banana',
+    aiEditorSubtitle: 'Transformez vos images avec l\'IA.',
+    uploadImage: 'Télécharger Image',
+    dragDrop: 'Glisser-déposer ou cliquer',
+    promptLabel: 'Prompt Magique',
+    promptPlaceholder: 'Ex: "Ajouter un filtre rétro" ou "Changer le fond en forêt"',
+    generate: 'Générer',
+    original: 'Original',
+    result: 'Résultat IA',
+    processing: 'Traitement...'
   }
 };
 

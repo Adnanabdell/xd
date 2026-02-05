@@ -17,7 +17,8 @@ import {
   BarChart,
   UserPlus,
   BookOpen,
-  Briefcase
+  Briefcase,
+  Wand2 // Added icon for AI Studio
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -94,6 +95,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, onNavigate, currentPag
             <NavItem page="attendance" icon={CalendarCheck} label={t('attendance')} />
             <NavItem page="reports" icon={BarChart} label={t('reports')} />
             
+            {/* AI Studio Nav Item */}
+            <NavItem page="ai-studio" icon={Wand2} label={t('aiStudio')} />
+            
             {user.role === 'ADMIN' && (
               <>
                 <div className="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -140,7 +144,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, onNavigate, currentPag
               <Menu size={24} />
             </button>
             <h2 className="text-lg font-semibold text-gray-800 hidden md:block">
-              {t(currentPage === 'dashboard' ? 'dashboard' : currentPage)}
+              {t(currentPage === 'dashboard' ? 'dashboard' : currentPage === 'ai-studio' ? 'aiStudio' : currentPage)}
             </h2>
           </div>
 

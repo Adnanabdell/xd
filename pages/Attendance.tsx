@@ -12,7 +12,9 @@ import {
   User as UserIcon,
   Download,
   Eye,
-  X
+  X,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
 export const Attendance: React.FC = () => {
@@ -43,6 +45,10 @@ export const Attendance: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  
+  // --- UNLOCK STATE ---
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [unlockReason, setUnlockReason] = useState('');
 
   // --- INITIAL LOAD ---
   useEffect(() => {
@@ -134,7 +140,7 @@ export const Attendance: React.FC = () => {
     setLoading(true);
     try {
       const recordArray = Object.values(records);
-      await BackendService.saveAttendance(
+      const session = await BackendService.saveAttendance(
         user!, 
         config.classId, 
         config.subjectId, 
@@ -144,6 +150,8 @@ export const Attendance: React.FC = () => {
         status
       );
       
+      setExistingSession(session);
+
       if (status === 'SUBMITTED') {
         alert("Attendance submitted successfully!");
         setStep(1); // Reset flow
@@ -152,6 +160,30 @@ export const Attendance: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUnlock = async () => {
+    if (!existingSession) return;
+    if (!unlockReason.trim()) {
+      alert("Please provide a reason to unlock.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await BackendService.unlockSession(user!, existingSession.id, unlockReason);
+      alert("Session unlocked.");
+      setShowUnlockModal(false);
+      setUnlockReason('');
+      
+      // Refresh session data
+      const refreshedSession = await BackendService.findSession(config.classId, config.date, config.sessionNumber);
+      setExistingSession(refreshedSession);
+    } catch (err: any) {
+      alert(err.message);
     } finally {
       setLoading(false);
     }
@@ -278,8 +310,34 @@ export const Attendance: React.FC = () => {
         </div>
       )}
 
+      {/* Locked Status Banner */}
+      {existingSession?.isLocked && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center text-orange-800">
+            <Lock size={20} className="mr-2" />
+            <span className="font-semibold">This session is locked due to time restrictions.</span>
+          </div>
+          {user?.role === 'ADMIN' && (
+            <button 
+              onClick={() => setShowUnlockModal(true)}
+              className="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 font-medium text-sm flex items-center"
+            >
+              <Unlock size={16} className="mr-2" /> Unlock Session
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Unlocked By Admin Banner */}
+      {!existingSession?.isLocked && existingSession?.unlockedByAdminId && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-yellow-800 text-sm flex items-center">
+          <Unlock size={16} className="mr-2" />
+          <span>Unlocked by Admin. Reason: {existingSession.unlockReason}</span>
+        </div>
+      )}
+
       {/* Student List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-100">
+      <div className={`bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-100 ${existingSession?.isLocked ? 'opacity-70 pointer-events-none' : ''}`}>
         {students.map(student => {
           const record = records[student.id];
           const isAbsent = record.status === 'ABSENT';
@@ -372,7 +430,7 @@ export const Attendance: React.FC = () => {
             <button 
               onClick={() => handleSave('DRAFT')}
               disabled={loading || existingSession?.isLocked}
-              className="flex-1 md:flex-none px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              className="flex-1 md:flex-none px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save Draft
             </button>
@@ -394,6 +452,49 @@ export const Attendance: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Unlock Modal */}
+      {showUnlockModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center">
+                <Unlock size={20} className="mr-2 text-blue-600" /> Unlock Session
+              </h3>
+              <button onClick={() => setShowUnlockModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Unlocking this session will allow edits. This action will be recorded in the audit log.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reason for unlocking</label>
+                <textarea 
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  rows={3}
+                  placeholder="e.g., Teacher made a mistake, System error..."
+                  value={unlockReason}
+                  onChange={(e) => setUnlockReason(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button onClick={() => setShowUnlockModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm">
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleUnlock}
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold"
+                >
+                  {loading ? 'Processing...' : 'Confirm Unlock'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Preview Modal */}
       {showPreview && (

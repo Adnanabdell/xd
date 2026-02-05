@@ -1,17 +1,23 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ShieldCheck, User, Lock } from 'lucide-react';
+import { ShieldCheck, Lock, Mail, ArrowRight } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('admin@school.com');
+  const [password, setPassword] = useState('password');
+  const [error, setError] = useState('');
 
-  const handleLogin = async (email: string) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
+    setError('');
+    
     try {
-      await login(email);
+      await login(email, password);
     } catch (e) {
-      alert("Login failed");
+      setError("Invalid credentials. Please ensure you use the demo password 'password'.");
     } finally {
       setLoading(false);
     }
@@ -29,43 +35,66 @@ export const Login: React.FC = () => {
         </div>
         
         <div className="p-8">
-          <p className="text-gray-600 text-center mb-8">
-            Select a role to simulate login (Authentication Bypass for Demo)
-          </p>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail size={18} className="text-gray-400" />
+                </div>
+                <input
+                  type="email"
+                  required
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="admin@school.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
 
-          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock size={18} className="text-gray-400" />
+                </div>
+                <input
+                  type="password"
+                  required
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-100">
+                {error}
+              </div>
+            )}
+
             <button
-              onClick={() => handleLogin('admin@school.com')}
+              type="submit"
               disabled={loading}
-              className="w-full flex items-center p-4 border-2 border-slate-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
+              className="w-full flex items-center justify-center py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-all disabled:opacity-70"
             >
-              <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mr-4 group-hover:bg-blue-100 group-hover:text-blue-600">
-                <Lock size={20} />
-              </div>
-              <div className="text-left">
-                <p className="font-bold text-gray-800">Admin Login</p>
-                <p className="text-sm text-gray-500">Access full system & logs</p>
-              </div>
+              {loading ? 'Authenticating...' : (
+                <>
+                  Sign In <ArrowRight size={18} className="ml-2" />
+                </>
+              )}
             </button>
+          </form>
 
-            <button
-              onClick={() => handleLogin('teacher@school.com')}
-              disabled={loading}
-              className="w-full flex items-center p-4 border-2 border-slate-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
-            >
-              <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-4 group-hover:bg-blue-100 group-hover:text-blue-600">
-                <User size={20} />
-              </div>
-              <div className="text-left">
-                <p className="font-bold text-gray-800">Teacher Login</p>
-                <p className="text-sm text-gray-500">Access assigned classes</p>
-              </div>
-            </button>
-          </div>
-
-          <div className="mt-8 text-center text-xs text-gray-400">
-            <p>Mock Backend Environment v1.0.4</p>
-            <p>Secure Hash Algorithm SHA-256 (Simulated)</p>
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="text-xs text-center text-gray-400 space-y-2">
+              <p>Demo Credentials:</p>
+              <p>Admin: <span className="font-mono text-gray-600">admin@school.com</span> / <span className="font-mono text-gray-600">password</span></p>
+              <p>Teacher: <span className="font-mono text-gray-600">teacher@school.com</span> / <span className="font-mono text-gray-600">password</span></p>
+            </div>
           </div>
         </div>
       </div>

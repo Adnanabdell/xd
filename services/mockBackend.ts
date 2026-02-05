@@ -49,7 +49,7 @@ const INITIAL_NOTIFICATIONS: Notification[] = [
 
 // Mock Database
 const LOAD_DB = (): DBState => {
-  const stored = localStorage.getItem('scholarflow_db_v4');
+  const stored = localStorage.getItem('scholarflow_db_v6');
   if (stored) return JSON.parse(stored);
   return {
     users: INITIAL_USERS,
@@ -63,17 +63,22 @@ const LOAD_DB = (): DBState => {
 };
 
 const SAVE_DB = (db: DBState) => {
-  localStorage.setItem('scholarflow_db_v4', JSON.stringify(db));
+  localStorage.setItem('scholarflow_db_v6', JSON.stringify(db));
 };
 
 // --- BACKEND SERVICES ---
 
 export const AuthService = {
-  login: async (email: string): Promise<User> => {
-    await new Promise(r => setTimeout(r, 400));
+  login: async (email: string, password: string): Promise<User> => {
+    await new Promise(r => setTimeout(r, 600));
     const db = LOAD_DB();
     const user = db.users.find(u => u.email === email);
-    if (!user) throw new Error('Invalid credentials');
+    
+    // Simple mock password check
+    if (!user || password !== 'password') {
+      throw new Error('Invalid credentials');
+    }
+    
     BackendService.logAudit(user, 'LOGIN', 'User logged into the system');
     return user;
   }
@@ -139,12 +144,15 @@ export const BackendService = {
     await new Promise(r => setTimeout(r, 300));
     const db = LOAD_DB();
     
-    // Check constraints
-    const hasRecords = db.attendanceSessions.some(s => s.records.some(r => r.studentId === studentId));
-    if (hasRecords) throw new Error("Cannot delete student with attendance records.");
+    // CASCADE: Remove this student's records from any attendance sessions
+    db.attendanceSessions.forEach(session => {
+        session.records = session.records.filter(r => r.studentId !== studentId);
+    });
 
+    // Delete the student
     db.students = db.students.filter(s => s.id !== studentId);
-    BackendService.logAudit(user, 'DELETE_STUDENT', `Deleted student ${studentId}`);
+    
+    BackendService.logAudit(user, 'DELETE_STUDENT', `Deleted student ${studentId} (and associated records)`);
     SAVE_DB(db);
   },
 
@@ -182,14 +190,20 @@ export const BackendService = {
     await new Promise(r => setTimeout(r, 300));
     const db = LOAD_DB();
     
-    // Check constraints
-    const hasClasses = db.classes.some(c => c.teacherId === teacherId);
-    const hasSubjects = db.subjects.some(s => s.teacherId === teacherId);
-    
-    if (hasClasses || hasSubjects) throw new Error("Cannot delete teacher assigned to classes or subjects.");
+    // CASCADE: Unassign teacher from Classes
+    db.classes.forEach(c => {
+      if (c.teacherId === teacherId) c.teacherId = undefined;
+    });
 
+    // CASCADE: Unassign teacher from Subjects
+    db.subjects.forEach(s => {
+      if (s.teacherId === teacherId) s.teacherId = undefined;
+    });
+
+    // Delete the teacher
     db.users = db.users.filter(u => u.id !== teacherId);
-    BackendService.logAudit(user, 'DELETE_TEACHER', `Deleted teacher ${teacherId}`);
+    
+    BackendService.logAudit(user, 'DELETE_TEACHER', `Deleted teacher ${teacherId} (Unassigned from Classes/Subjects)`);
     SAVE_DB(db);
   },
 
@@ -225,14 +239,18 @@ export const BackendService = {
     await new Promise(r => setTimeout(r, 300));
     const db = LOAD_DB();
     
-    const hasStudents = db.students.some(s => s.classId === classId);
-    if (hasStudents) throw new Error("Cannot delete class containing students.");
+    // CASCADE: Unassign students from this class
+    db.students.forEach(s => {
+      if (s.classId === classId) s.classId = undefined;
+    });
     
-    const hasSessions = db.attendanceSessions.some(s => s.classId === classId);
-    if (hasSessions) throw new Error("Cannot delete class with attendance sessions.");
+    // CASCADE: Delete attendance sessions associated with this class
+    db.attendanceSessions = db.attendanceSessions.filter(s => s.classId !== classId);
 
+    // Delete the class
     db.classes = db.classes.filter(c => c.id !== classId);
-    BackendService.logAudit(user, 'DELETE_CLASS', `Deleted class ${classId}`);
+    
+    BackendService.logAudit(user, 'DELETE_CLASS', `Deleted class ${classId} (Unassigned students, removed sessions)`);
     SAVE_DB(db);
   },
 
@@ -268,11 +286,13 @@ export const BackendService = {
     await new Promise(r => setTimeout(r, 300));
     const db = LOAD_DB();
     
-    const hasSessions = db.attendanceSessions.some(s => s.subjectId === subId);
-    if (hasSessions) throw new Error("Cannot delete subject with attendance sessions.");
+    // CASCADE: Delete attendance sessions associated with this subject
+    db.attendanceSessions = db.attendanceSessions.filter(s => s.subjectId !== subId);
 
+    // Delete the subject
     db.subjects = db.subjects.filter(s => s.id !== subId);
-    BackendService.logAudit(user, 'DELETE_SUBJECT', `Deleted subject ${subId}`);
+    
+    BackendService.logAudit(user, 'DELETE_SUBJECT', `Deleted subject ${subId} (Removed associated sessions)`);
     SAVE_DB(db);
   },
 
@@ -308,6 +328,25 @@ export const BackendService = {
     ) || null;
   },
 
+  unlockSession: async (user: User, sessionId: string, reason: string): Promise<void> => {
+    await new Promise(r => setTimeout(r, 500));
+    const db = LOAD_DB();
+    
+    if (user.role !== 'ADMIN') {
+      throw new Error("Unauthorized: Only Admins can unlock sessions.");
+    }
+
+    const idx = db.attendanceSessions.findIndex(s => s.id === sessionId);
+    if (idx === -1) throw new Error("Session not found");
+
+    db.attendanceSessions[idx].isLocked = false;
+    db.attendanceSessions[idx].unlockedByAdminId = user.id;
+    db.attendanceSessions[idx].unlockReason = reason;
+
+    BackendService.logAudit(user, 'UNLOCK_SESSION', `Unlocked session ${sessionId} - Reason: ${reason}`);
+    SAVE_DB(db);
+  },
+
   saveAttendance: async (
     user: User, 
     classId: string, 
@@ -325,18 +364,27 @@ export const BackendService = {
     );
     
     let isLocked = false;
-    if (status === 'SUBMITTED') {
+    let unlockedByAdminId = undefined;
+    let unlockReason = undefined;
+
+    // Check if previously unlocked by admin
+    if (existingIndex > -1) {
+      const prev = db.attendanceSessions[existingIndex];
+      unlockedByAdminId = prev.unlockedByAdminId;
+      unlockReason = prev.unlockReason;
+
+      // Ensure we don't overwrite manual unlock
+      if (prev.isLocked && !prev.unlockedByAdminId && user.role !== 'ADMIN') {
+        throw new Error("This session is locked and cannot be modified.");
+      }
+    }
+    
+    // Apply locking logic only if NOT manually unlocked
+    if (status === 'SUBMITTED' && !unlockedByAdminId) {
       const sessionDate = new Date(date);
       const now = new Date();
       const diffHours = (now.getTime() - sessionDate.getTime()) / (1000 * 60 * 60);
       if (diffHours > 24) isLocked = true;
-    }
-
-    if (existingIndex > -1) {
-      const prev = db.attendanceSessions[existingIndex];
-      if (prev.isLocked && !prev.unlockedByAdminId && user.role !== 'ADMIN') {
-        throw new Error("This session is locked and cannot be modified.");
-      }
     }
 
     const sessionData: AttendanceSession = {
@@ -351,7 +399,8 @@ export const BackendService = {
       isLocked,
       createdAt: existingIndex > -1 ? db.attendanceSessions[existingIndex].createdAt : new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      unlockedByAdminId: existingIndex > -1 ? db.attendanceSessions[existingIndex].unlockedByAdminId : undefined,
+      unlockedByAdminId,
+      unlockReason,
     };
 
     if (existingIndex > -1) {

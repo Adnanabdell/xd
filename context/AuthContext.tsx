@@ -4,7 +4,7 @@ import { AuthService } from '../services/mockBackend';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -23,10 +23,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const loggedUser = await AuthService.login(email);
+      const loggedUser = await AuthService.login(email, password);
       setUser(loggedUser);
       localStorage.setItem('scholarflow_user', JSON.stringify(loggedUser));
     } catch (e) {

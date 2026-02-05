@@ -1,0 +1,5 @@
+{
+  "name": "ScholarFlow Manager",
+  "description": "A comprehensive school management dashboard featuring RBAC, attendance tracking with strict locking logic, and audit logging. Simulates a full backend environment within the browser.",
+  "requestFramePermissions": []
+}
